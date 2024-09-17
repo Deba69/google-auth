@@ -29,12 +29,11 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Replace SQLiteStore with an in-memory session store
 app.use(session({
   secret: 'keyboard cat',
-  resave: false, // don't save session if unmodified
-  saveUninitialized: false, // don't create session until something stored
-  store: new session.MemoryStore(), // using in-memory session store
+  resave: false, 
+  saveUninitialized: false, 
+  store: new session.MemoryStore(), 
 }));
 
 app.use(csrf());
@@ -56,7 +55,7 @@ app.use(function(req, res, next) {
 app.use('/', indexRouter);
 app.use('/', authRouter);
 
-// catch 404 and forward to error handler
+
 app.use(function(req, res, next) {
   next(createError(404));
 });
