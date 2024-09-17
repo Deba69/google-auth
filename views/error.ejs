@@ -1,3 +1,27 @@
-<h1><%= message %></h1>
-<h2><%= error.status %></h2>
-<pre><%= error.stack %></pre>
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Error - VEDAVIBES</title>
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/error.css">
+</head>
+<body>
+    <section class="error">
+        <header>
+            <h1>VEDAVIBES</h1>
+        </header>
+        <main>
+            <h2>Oops! Something went wrong.</h2>
+            <p><%= message %></p>
+
+            <!-- Show error details if the app is not in production mode -->
+            <h3>Error Status: <%= error.status || 500 %></h3>
+            <pre>Error Stack: <%= error.stack %></pre>
+
+            <a class="button" href="/">Back to Home</a>
+        </main>
+    </section>
+</body>
+</html>

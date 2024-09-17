@@ -1,49 +1,51 @@
 var express = require('express');
 var ensureLogIn = require('connect-ensure-login').ensureLoggedIn;
-var db = require('../db');
 
 var ensureLoggedIn = ensureLogIn();
 
-function fetchTodos(req, res, next) {
-  db.all('SELECT * FROM todos WHERE owner_id = ?', [
-    req.user.id
-  ], function(err, rows) {
-    if (err) { return next(err); }
-    
-    var todos = rows.map(function(row) {
-      return {
-        id: row.id,
-        title: row.title,
-        completed: row.completed == 1 ? true : false,
-        url: '/' + row.id
-      }
-    });
-    res.locals.todos = todos;
-    res.locals.activeCount = todos.filter(function(todo) { return !todo.completed; }).length;
-    res.locals.completedCount = todos.length - res.locals.activeCount;
-    next();
-  });
+
+const todos = [];
+
+
+const users = []; 
+
+function fetchdo(req, res, next) {
+  
+  const userdo = todos.filter(todo => todo.owner_id === req.user.id);
+  
+  
+  const mappeddo = userdo.map(todo => ({
+    id: todo.id,
+    title: todo.title,
+    completed: todo.completed === 1,
+    url: '/' + todo.id
+  }));
+  
+  res.locals.todos = mappeddo;
+  res.locals.activeCount = mappeddo.filter(todo => !todo.completed).length;
+  res.locals.completedCount = mappeddo.length - res.locals.activeCount;
+  next();
 }
 
 var router = express.Router();
 
-/* GET home page. */
+
 router.get('/', function(req, res, next) {
   if (!req.user) { return res.render('home'); }
   next();
-}, fetchTodos, function(req, res, next) {
+}, fetchdo, function(req, res, next) {
   res.locals.filter = null;
   res.render('index', { user: req.user });
 });
 
-router.get('/active', ensureLoggedIn, fetchTodos, function(req, res, next) {
-  res.locals.todos = res.locals.todos.filter(function(todo) { return !todo.completed; });
+router.get('/active', ensureLoggedIn, fetchdo, function(req, res, next) {
+  res.locals.todos = res.locals.todos.filter(todo => !todo.completed);
   res.locals.filter = 'active';
   res.render('index', { user: req.user });
 });
 
-router.get('/completed', ensureLoggedIn, fetchTodos, function(req, res, next) {
-  res.locals.todos = res.locals.todos.filter(function(todo) { return todo.completed; });
+router.get('/completed', ensureLoggedIn, fetchdo, function(req, res, next) {
+  res.locals.todos = res.locals.todos.filter(todo => todo.completed);
   res.locals.filter = 'completed';
   res.render('index', { user: req.user });
 });
@@ -55,14 +57,14 @@ router.post('/', ensureLoggedIn, function(req, res, next) {
   if (req.body.title !== '') { return next(); }
   return res.redirect('/' + (req.body.filter || ''));
 }, function(req, res, next) {
-  db.run('INSERT INTO todos (owner_id, title, completed) VALUES (?, ?, ?)', [
-    req.user.id,
-    req.body.title,
-    req.body.completed == true ? 1 : null
-  ], function(err) {
-    if (err) { return next(err); }
-    return res.redirect('/' + (req.body.filter || ''));
-  });
+  const newTodo = {
+    id: todos.length + 1, 
+    owner_id: req.user.id,
+    title: req.body.title,
+    completed: req.body.completed ? 1 : 0
+  };
+  todos.push(newTodo);
+  return res.redirect('/' + (req.body.filter || ''));
 });
 
 router.post('/:id(\\d+)', ensureLoggedIn, function(req, res, next) {
@@ -70,53 +72,43 @@ router.post('/:id(\\d+)', ensureLoggedIn, function(req, res, next) {
   next();
 }, function(req, res, next) {
   if (req.body.title !== '') { return next(); }
-  db.run('DELETE FROM todos WHERE id = ? AND owner_id = ?', [
-    req.params.id,
-    req.user.id
-  ], function(err) {
-    if (err) { return next(err); }
-    return res.redirect('/' + (req.body.filter || ''));
-  });
+  const index = todos.findIndex(todo => todo.id == req.params.id && todo.owner_id === req.user.id);
+  if (index !== -1) {
+    todos.splice(index, 1);
+  }
+  return res.redirect('/' + (req.body.filter || ''));
 }, function(req, res, next) {
-  db.run('UPDATE todos SET title = ?, completed = ? WHERE id = ? AND owner_id = ?', [
-    req.body.title,
-    req.body.completed !== undefined ? 1 : null,
-    req.params.id,
-    req.user.id
-  ], function(err) {
-    if (err) { return next(err); }
-    return res.redirect('/' + (req.body.filter || ''));
-  });
+  const todo = todos.find(todo => todo.id == req.params.id && todo.owner_id === req.user.id);
+  if (todo) {
+    todo.title = req.body.title;
+    todo.completed = req.body.completed !== undefined ? 1 : 0;
+  }
+  return res.redirect('/' + (req.body.filter || ''));
 });
 
 router.post('/:id(\\d+)/delete', ensureLoggedIn, function(req, res, next) {
-  db.run('DELETE FROM todos WHERE id = ? AND owner_id = ?', [
-    req.params.id,
-    req.user.id
-  ], function(err) {
-    if (err) { return next(err); }
-    return res.redirect('/' + (req.body.filter || ''));
-  });
+  const index = todos.findIndex(todo => todo.id == req.params.id && todo.owner_id === req.user.id);
+  if (index !== -1) {
+    todos.splice(index, 1);
+  }
+  return res.redirect('/' + (req.body.filter || ''));
 });
 
 router.post('/toggle-all', ensureLoggedIn, function(req, res, next) {
-  db.run('UPDATE todos SET completed = ? WHERE owner_id = ?', [
-    req.body.completed !== undefined ? 1 : null,
-    req.user.id
-  ], function(err) {
-    if (err) { return next(err); }
-    return res.redirect('/' + (req.body.filter || ''));
+  todos.forEach(todo => {
+    if (todo.owner_id === req.user.id) {
+      todo.completed = req.body.completed !== undefined ? 1 : 0;
+    }
   });
+  return res.redirect('/' + (req.body.filter || ''));
 });
 
 router.post('/clear-completed', ensureLoggedIn, function(req, res, next) {
-  db.run('DELETE FROM todos WHERE owner_id = ? AND completed = ?', [
-    req.user.id,
-    1
-  ], function(err) {
-    if (err) { return next(err); }
-    return res.redirect('/' + (req.body.filter || ''));
-  });
+  const index = todos.findIndex(todo => todo.owner_id === req.user.id && todo.completed === 1);
+  if (index !== -1) {
+    todos.splice(index, 1);
+  }
+  return res.redirect('/' + (req.body.filter || ''));
 });
 
 module.exports = router;

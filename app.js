@@ -9,9 +9,8 @@ var csrf = require('csurf');
 var passport = require('passport');
 var logger = require('morgan');
 
-// pass the session to the connect sqlite3 module
-// allowing it to inherit from session.Store
-var SQLiteStore = require('connect-sqlite3')(session);
+// Temporary in-memory array to store user sessions
+const users = [];
 
 var indexRouter = require('./routes/index');
 var authRouter = require('./routes/auth');
@@ -29,21 +28,26 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Replace SQLiteStore with an in-memory session store
 app.use(session({
   secret: 'keyboard cat',
   resave: false, // don't save session if unmodified
   saveUninitialized: false, // don't create session until something stored
-  store: new SQLiteStore({ db: 'sessions.db', dir: './var/db' })
+  store: new session.MemoryStore(), // using in-memory session store
 }));
+
 app.use(csrf());
 app.use(passport.authenticate('session'));
+
 app.use(function(req, res, next) {
   var msgs = req.session.messages || [];
   res.locals.messages = msgs;
-  res.locals.hasMessages = !! msgs.length;
+  res.locals.hasMessages = !!msgs.length;
   req.session.messages = [];
   next();
 });
+
 app.use(function(req, res, next) {
   res.locals.csrfToken = req.csrfToken();
   next();
@@ -67,5 +71,7 @@ app.use(function(err, req, res, next) {
   res.status(err.status || 500);
   res.render('error');
 });
+
+app.listen(8000);
 
 module.exports = app;

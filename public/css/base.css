@@ -8,12 +8,12 @@ hr {
 .learn a {
 	font-weight: normal;
 	text-decoration: none;
-	color: #b83f45;
+	color: #30bd30;
 }
 
 .learn a:hover {
 	text-decoration: underline;
-	color: #787e7e;
+	color: #1bd11b;
 }
 
 .learn h3,
